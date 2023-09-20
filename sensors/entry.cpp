@@ -15,7 +15,6 @@
  */
 
 #include <android-base/unique_fd.h>
-#include <log/log.h>
 #include <qemud.h>
 #include <multihal_sensors.h>
 
@@ -54,7 +53,7 @@ class QemudSensorsTransport : public goldfish::SensorsTransport {
 };
 
 goldfish::MultihalSensors impl(
-    std::move(std::make_unique<QemudSensorsTransport>("qemud")));
+    std::move(std::make_unique<QemudSensorsTransport>("sensors")));
 
 } // namespace
 
