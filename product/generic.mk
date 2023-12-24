@@ -157,6 +157,8 @@ PRODUCT_COPY_FILES += \
 
 PRODUCT_PACKAGES += \
     DisplayCutoutEmulationEmu01Overlay \
+    EmulationPixelFold2Overlay \
+    SystemUIEmulationPixelFold2Overlay \
     EmulationPixelFoldOverlay \
     SystemUIEmulationPixelFoldOverlay \
     EmulationPixel8ProOverlay \
@@ -324,6 +326,9 @@ PRODUCT_COPY_FILES += \
     device/generic/goldfish/pixel_fold/device_state_configuration.xml:/data/misc/pixel_fold/devicestate/device_state_configuration.xml \
     device/generic/goldfish/pixel_fold/display_layout_configuration.xml:/data/misc/pixel_fold/displayconfig/display_layout_configuration.xml \
     device/generic/goldfish/pixel_fold/display_settings.xml:/data/misc/pixel_fold/display_settings.xml \
+    device/generic/goldfish/pixel_fold2/device_state_configuration.xml:/data/misc/pixel_fold2/devicestate/device_state_configuration.xml \
+    device/generic/goldfish/pixel_fold2/display_layout_configuration.xml:/data/misc/pixel_fold2/displayconfig/display_layout_configuration.xml \
+    device/generic/goldfish/pixel_fold2/display_settings.xml:/data/misc/pixel_fold2/display_settings.xml \
     device/generic/goldfish/data/etc/config.ini:config.ini \
     device/generic/goldfish/wifi/wpa_supplicant.conf:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/wpa_supplicant.conf \
     frameworks/native/data/etc/android.hardware.bluetooth_le.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.bluetooth_le.xml \
