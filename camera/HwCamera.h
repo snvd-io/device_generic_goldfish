@@ -93,6 +93,10 @@ struct HwCamera {
                              const native_handle_t* jpegBuffer,
                              size_t jpegBufferSize);
 
+    static bool convertRGBAtoRAW16(Rect<uint16_t> imageSize,
+                                   const void* rgba,
+                                   const native_handle_t* raw16Buffer);
+
     ////////////////////////////////////////////////////////////////////////////
     virtual Span<const std::pair<int32_t, int32_t>> getTargetFpsRanges() const = 0;
     virtual std::tuple<int32_t, int32_t, int32_t, int32_t> getAeCompensationRange() const;
@@ -115,6 +119,7 @@ struct HwCamera {
     virtual int64_t getStallFrameDurationNs() const;
     virtual int32_t getSensorOrientation() const;
     virtual Rect<uint16_t> getSensorSize() const = 0;
+    virtual uint8_t getSensorColorFilterArrangement() const = 0;
     virtual float getSensorDPI() const;
     virtual std::pair<int32_t, int32_t> getSensorSensitivityRange() const;
     virtual std::pair<int64_t, int64_t> getSensorExposureTimeRange() const = 0;
