@@ -131,7 +131,7 @@ ScopedAStatus CameraDevice::getCameraCharacteristics(CameraMetadata* metadata) {
         m[ANDROID_CONTROL_MAX_REGIONS]
             .add<int32_t>(0)    // AE
             .add<int32_t>(0)    // AWB
-            .add<int32_t>(0);   // AF
+            .add<int32_t>(1);   // AF
         m[ANDROID_CONTROL_AE_LOCK_AVAILABLE] =
             uint8_t(ANDROID_CONTROL_AE_LOCK_AVAILABLE_FALSE);
         m[ANDROID_CONTROL_AWB_LOCK_AVAILABLE] =
