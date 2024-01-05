@@ -334,6 +334,9 @@ ScopedAStatus CameraDevice::getCameraCharacteristics(CameraMetadata* metadata) {
             m[ANDROID_SENSOR_INFO_SENSITIVITY_RANGE]
                 .add<int32_t>(senitivityRange.first)
                 .add<int32_t>(senitivityRange.second);
+
+            m[ANDROID_SENSOR_MAX_ANALOG_SENSITIVITY] =
+                int32_t(senitivityRange.second / 2);
         }
 
         m[ANDROID_SENSOR_INFO_COLOR_FILTER_ARRANGEMENT] =
