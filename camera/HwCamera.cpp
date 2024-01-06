@@ -36,6 +36,8 @@ constexpr int64_t kOneSecondNs = 1000000000;
 constexpr float kDefaultAperture = 4.0;
 constexpr float kDefaultFocalLength = 1.0;
 constexpr int32_t kDefaultSensorSensitivity = 100;
+
+constexpr char kClass[] = "HwCamera";
 }  // namespace
 
 int64_t HwCamera::getFrameDuration(const camera_metadata_t* const metadata,
@@ -68,6 +70,26 @@ int64_t HwCamera::getFrameDuration(const camera_metadata_t* const metadata,
                 return def;
             }
         }
+    }
+}
+
+camera_metadata_enum_android_lens_state_t
+HwCamera::getAfLensState(const camera_metadata_enum_android_control_af_state_t state) {
+    switch (state) {
+    default:
+        ALOGW("%s:%s:%d unexpected AF state=%d", kClass, __func__, __LINE__, state);
+        [[fallthrough]];
+
+    case ANDROID_CONTROL_AF_STATE_INACTIVE:
+    case ANDROID_CONTROL_AF_STATE_PASSIVE_SCAN:
+    case ANDROID_CONTROL_AF_STATE_PASSIVE_FOCUSED:
+    case ANDROID_CONTROL_AF_STATE_FOCUSED_LOCKED:
+    case ANDROID_CONTROL_AF_STATE_NOT_FOCUSED_LOCKED:
+    case ANDROID_CONTROL_AF_STATE_PASSIVE_UNFOCUSED:
+        return ANDROID_LENS_STATE_STATIONARY;
+
+    case ANDROID_CONTROL_AF_STATE_ACTIVE_SCAN:
+        return ANDROID_LENS_STATE_MOVING;
     }
 }
 
