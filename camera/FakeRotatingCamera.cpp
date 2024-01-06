@@ -797,12 +797,12 @@ CameraMetadata FakeRotatingCamera::applyMetadata(const CameraMetadata& metadata)
     const camera_metadata_enum_android_control_af_mode_t afMode =
         find_camera_metadata_ro_entry(raw, ANDROID_CONTROL_AF_MODE, &entry) ?
             ANDROID_CONTROL_AF_MODE_OFF :
-            static_cast<camera_metadata_enum_android_control_af_mode_t>(entry.data.i32[0]);
+            static_cast<camera_metadata_enum_android_control_af_mode_t>(entry.data.u8[0]);
 
     const camera_metadata_enum_android_control_af_trigger_t afTrigger =
         find_camera_metadata_ro_entry(raw, ANDROID_CONTROL_AF_TRIGGER, &entry) ?
             ANDROID_CONTROL_AF_TRIGGER_IDLE :
-            static_cast<camera_metadata_enum_android_control_af_trigger_t>(entry.data.i32[0]);
+            static_cast<camera_metadata_enum_android_control_af_trigger_t>(entry.data.u8[0]);
 
     const auto af = mAFStateMachine(afMode, afTrigger);
 
