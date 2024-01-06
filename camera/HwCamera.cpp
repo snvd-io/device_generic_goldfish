@@ -102,6 +102,105 @@ bool HwCamera::compressJpeg(const Rect<uint16_t> imageSize,
     return success;
 }
 
+bool HwCamera::convertRGBAtoRAW16(const Rect<uint16_t> imageSize,
+                                  const void* rgba,
+                                  const native_handle_t* raw16Buffer) {
+    if ((imageSize.width & 1) || (imageSize.height & 1)) {
+        /*
+         * This format assumes
+         * - an even width
+         * - an even height
+        */
+        return FAILURE(false);
+    }
+
+    void* raw16 = nullptr;
+    if (GraphicBufferMapper::get().lock(
+            raw16Buffer, static_cast<uint32_t>(BufferUsage::CPU_WRITE_OFTEN),
+            {imageSize.width, imageSize.height}, &raw16) != NO_ERROR) {
+        return FAILURE(false);
+    }
+
+    const unsigned height = imageSize.height;
+    const unsigned rgbaWidth = imageSize.width;
+    const unsigned rgbaWidth2 = rgbaWidth / 2;  // we will process two RGBAs at once
+
+    /*
+     * This format assumes
+     * - a horizontal stride multiple of 16 pixels
+     * - strides are specified in pixels, not in bytes
+    */
+    const unsigned rawrawAlign2 = (((rgbaWidth + 15U) & ~15U) - rgbaWidth) / 2;
+
+    const uint64_t* rgbargbaPtr = static_cast<const uint64_t*>(rgba);
+    uint32_t* rawraw = static_cast<uint32_t*>(raw16);
+
+#define TRANSFORM10(V8) (8U + ((V8) * 16410U) >> 12)
+#define RAWRAW(LO, HI) (TRANSFORM10(LO) | (TRANSFORM10(HI) << 16))
+
+    for (unsigned row = 0; row < height; row += 2) {
+#define RGBARGBA_TO_R16G16(RGBARGBA) RAWRAW((RGBARGBA & 0xFF), ((RGBARGBA >> 40) & 0xFF))
+        for (unsigned n = rgbaWidth2 % 8; n > 0; --n, ++rgbargbaPtr, ++rawraw) {  // the RG loop
+            const uint64_t rgbargba = *rgbargbaPtr;
+            *rawraw = RGBARGBA_TO_R16G16(rgbargba);
+        }
+        for (unsigned n = rgbaWidth2 / 8; n > 0; --n, rgbargbaPtr += 8, rawraw += 8) {  // the RG loop
+            const uint64_t rgbargba0 = rgbargbaPtr[0];
+            const uint64_t rgbargba1 = rgbargbaPtr[1];
+            const uint64_t rgbargba2 = rgbargbaPtr[2];
+            const uint64_t rgbargba3 = rgbargbaPtr[3];
+            const uint64_t rgbargba4 = rgbargbaPtr[4];
+            const uint64_t rgbargba5 = rgbargbaPtr[5];
+            const uint64_t rgbargba6 = rgbargbaPtr[6];
+            const uint64_t rgbargba7 = rgbargbaPtr[7];
+
+            rawraw[0] = RGBARGBA_TO_R16G16(rgbargba0);
+            rawraw[1] = RGBARGBA_TO_R16G16(rgbargba1);
+            rawraw[2] = RGBARGBA_TO_R16G16(rgbargba2);
+            rawraw[3] = RGBARGBA_TO_R16G16(rgbargba3);
+            rawraw[4] = RGBARGBA_TO_R16G16(rgbargba4);
+            rawraw[5] = RGBARGBA_TO_R16G16(rgbargba5);
+            rawraw[6] = RGBARGBA_TO_R16G16(rgbargba6);
+            rawraw[7] = RGBARGBA_TO_R16G16(rgbargba7);
+        }
+#undef RGBARGBA_TO_R16G16
+        rawraw += rawrawAlign2;
+
+#define RGBARGBA_TO_G16B16(RGBARGBA) RAWRAW(((RGBARGBA >> 8) & 0xFF), ((RGBARGBA >> 48) & 0xFF))
+        for (unsigned n = rgbaWidth2 % 8; n > 0; --n, ++rgbargbaPtr, ++rawraw) {  // the GB loop
+            const uint64_t rgbargba = *rgbargbaPtr;
+            *rawraw = RGBARGBA_TO_G16B16(rgbargba);
+        }
+        for (unsigned n = rgbaWidth2 / 8; n > 0; --n, rgbargbaPtr += 8, rawraw += 8) {  // the GB loop
+            const uint64_t rgbargba0 = rgbargbaPtr[0];
+            const uint64_t rgbargba1 = rgbargbaPtr[1];
+            const uint64_t rgbargba2 = rgbargbaPtr[2];
+            const uint64_t rgbargba3 = rgbargbaPtr[3];
+            const uint64_t rgbargba4 = rgbargbaPtr[4];
+            const uint64_t rgbargba5 = rgbargbaPtr[5];
+            const uint64_t rgbargba6 = rgbargbaPtr[6];
+            const uint64_t rgbargba7 = rgbargbaPtr[7];
+
+            rawraw[0] = RGBARGBA_TO_G16B16(rgbargba0);
+            rawraw[1] = RGBARGBA_TO_G16B16(rgbargba1);
+            rawraw[2] = RGBARGBA_TO_G16B16(rgbargba2);
+            rawraw[3] = RGBARGBA_TO_G16B16(rgbargba3);
+            rawraw[4] = RGBARGBA_TO_G16B16(rgbargba4);
+            rawraw[5] = RGBARGBA_TO_G16B16(rgbargba5);
+            rawraw[6] = RGBARGBA_TO_G16B16(rgbargba6);
+            rawraw[7] = RGBARGBA_TO_G16B16(rgbargba7);
+        }
+#undef RGBARGBA_TO_G16B16
+        rawraw += rawrawAlign2;
+    }
+
+#undef RAWRAW
+#undef TRANSFORM10
+
+    LOG_ALWAYS_FATAL_IF(GraphicBufferMapper::get().unlock(raw16Buffer) != NO_ERROR);
+    return true;
+}
+
 std::tuple<int32_t, int32_t, int32_t, int32_t> HwCamera::getAeCompensationRange() const {
     return {-6, 6, 1, 2}; // range=[-6, +6], step=1/2
 }

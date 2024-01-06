@@ -945,6 +945,10 @@ Rect<uint16_t> FakeRotatingCamera::getSensorSize() const {
     return {1920, 1080};
 }
 
+uint8_t FakeRotatingCamera::getSensorColorFilterArrangement() const {
+    return ANDROID_SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_RGB;
+}
+
 std::pair<int64_t, int64_t> FakeRotatingCamera::getSensorExposureTimeRange() const {
     return {kMinSensorExposureTimeNs, kMaxSensorExposureTimeNs};
 }
