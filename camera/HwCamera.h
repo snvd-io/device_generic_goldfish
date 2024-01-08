@@ -87,6 +87,9 @@ struct HwCamera {
     static int64_t getFrameDuration(const camera_metadata_t*, int64_t def,
                                     int64_t min, int64_t max);
 
+    static camera_metadata_enum_android_lens_state_t
+        getAfLensState(camera_metadata_enum_android_control_af_state_t);
+
     static bool compressJpeg(Rect<uint16_t> imageSize,
                              const android_ycbcr& imageYcbcr,
                              const CameraMetadata& metadata,
