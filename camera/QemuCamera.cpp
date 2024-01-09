@@ -462,12 +462,12 @@ CameraMetadata QemuCamera::applyMetadata(const CameraMetadata& metadata) {
     const camera_metadata_enum_android_control_af_mode_t afMode =
         find_camera_metadata_ro_entry(raw, ANDROID_CONTROL_AF_MODE, &entry) ?
             ANDROID_CONTROL_AF_MODE_OFF :
-            static_cast<camera_metadata_enum_android_control_af_mode_t>(entry.data.i32[0]);
+            static_cast<camera_metadata_enum_android_control_af_mode_t>(entry.data.u8[0]);
 
     const camera_metadata_enum_android_control_af_trigger_t afTrigger =
         find_camera_metadata_ro_entry(raw, ANDROID_CONTROL_AF_TRIGGER, &entry) ?
             ANDROID_CONTROL_AF_TRIGGER_IDLE :
-            static_cast<camera_metadata_enum_android_control_af_trigger_t>(entry.data.i32[0]);
+            static_cast<camera_metadata_enum_android_control_af_trigger_t>(entry.data.u8[0]);
 
     const auto af = mAFStateMachine(afMode, afTrigger);
 
@@ -482,7 +482,7 @@ CameraMetadata QemuCamera::applyMetadata(const CameraMetadata& metadata) {
     m[ANDROID_FLASH_STATE] = uint8_t(ANDROID_FLASH_STATE_UNAVAILABLE);
     m[ANDROID_LENS_APERTURE] = mAperture;
     m[ANDROID_LENS_FOCUS_DISTANCE] = af.second;
-    m[ANDROID_LENS_STATE] = uint8_t(ANDROID_LENS_STATE_STATIONARY);
+    m[ANDROID_LENS_STATE] = uint8_t(getAfLensState(af.first));
     m[ANDROID_REQUEST_PIPELINE_DEPTH] = uint8_t(4);
     m[ANDROID_SENSOR_FRAME_DURATION] = mFrameDurationNs;
     m[ANDROID_SENSOR_EXPOSURE_TIME] = mSensorExposureDurationNs;
