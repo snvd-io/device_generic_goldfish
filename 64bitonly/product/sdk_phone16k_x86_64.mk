@@ -55,6 +55,6 @@ $(call inherit-product, device/generic/goldfish/64bitonly/product/emulator64_ven
 
 # Overrides
 PRODUCT_BRAND := Android
-PRODUCT_NAME := sdk_phone64_x86_64_pgagnostic
+PRODUCT_NAME := sdk_phone16k_x86_64
 PRODUCT_DEVICE := emu64x16k
 PRODUCT_MODEL := Android SDK built for 16KB page-size x86_64
