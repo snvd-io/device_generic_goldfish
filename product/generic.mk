@@ -350,3 +350,6 @@ ifneq ($(PRODUCT_IS_ATV_SDK),true)
         device/generic/goldfish/data/etc/handheld_core_hardware.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/handheld_core_hardware.xml
 endif
 endif
+
+# Goldfish uses 6.X kernels.
+PRODUCT_ENABLE_UFFD_GC := true
