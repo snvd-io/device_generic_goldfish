@@ -1,9 +1,9 @@
 TARGET_KERNEL_USE ?= 5.15
 
-KERNEL_ARTIFACTS_PATH := prebuilts/qemu-kernel/x86_64/$(TARGET_KERNEL_USE)
+KERNEL_ARTIFACTS_PATH := kernel/prebuilts/$(TARGET_KERNEL_USE)/x86_64
 
 VIRTUAL_DEVICE_KERNEL_MODULES_PATH := \
-    prebuilts/qemu-kernel/x86_64/$(TARGET_KERNEL_USE)/ko
+    kernel/prebuilts/common-modules/virtual-device/$(TARGET_KERNEL_USE)/x86-64
 
 # The list of modules to reach the second stage. For performance reasons we
 # don't want to put all modules into the ramdisk.
