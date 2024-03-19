@@ -22,6 +22,7 @@
 #include <limits>
 #include <aidl/android/hardware/biometrics/common/BnCancellationSignal.h>
 #include <android-base/unique_fd.h>
+#include <debug.h>
 #include <log/log.h>
 #include <qemud.h>
 #include <utils/Timers.h>
@@ -332,11 +333,12 @@ ndk::ScopedAStatus Session::close() {
 
 Session::ErrorCode Session::validateHat(const keymaster::HardwareAuthToken& hat) const {
     if (hat.mac.empty()) {
-        return ErrorCode::E_HAT_MAC_EMPTY;
+        return FAILURE(ErrorCode::E_HAT_MAC_EMPTY);
     }
 
     if (!mChallenges.count(hat.challenge)) {
-        return ErrorCode::E_HAT_WRONG_CHALLENGE;
+        return FAILURE_V(ErrorCode::E_HAT_WRONG_CHALLENGE,
+                         "unexpected challenge: %" PRId64, hat.challenge);
     }
 
     return ErrorCode::OK;
