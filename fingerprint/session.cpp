@@ -30,6 +30,13 @@
 #include "session.h"
 #include "storage.h"
 
+#define SESSION_DEBUG(FMT, ...) \
+    ALOGD("%p:%s:%d: " FMT, this, __func__, __LINE__, __VA_ARGS__)
+#define SESSION_ERR(FMT, ...) \
+    ALOGE("%p:%s:%d: " FMT, this, __func__, __LINE__, __VA_ARGS__)
+
+#define SESSION_DEBUG0(STR) SESSION_DEBUG("%s", STR)
+
 namespace aidl::android::hardware::biometrics::fingerprint {
 
 using ::android::base::unique_fd;
@@ -84,14 +91,25 @@ template <class T> std::string vec2str(const std::vector<T>& v) {
     }
 }
 
-const char* state2str(const Session::State s) {
+std::string state2str(const Session::State s) {
     switch (s) {
     case Session::State::IDLE:                  return "IDLE";
     case Session::State::ENROLLING_START:       return "ENROLLING_START";
     case Session::State::ENROLLING_END:         return "ENROLLING_END";
     case Session::State::AUTHENTICATING:        return "AUTHENTICATING";
     case Session::State::DETECTING_INTERACTION: return "DETECTING_INTERACTION";
-    default:                                    return "?";
+    default: return std::to_string(static_cast<int>(s));
+    }
+}
+
+std::string errorCode2str(const Session::ErrorCode ec) {
+    switch (ec) {
+    case Session::ErrorCode::OK:                    return "OK";
+    case Session::ErrorCode::E_HAT_MAC_EMPTY:       return "E_HAT_MAC_EMPTY";
+    case Session::ErrorCode::E_HAT_WRONG_CHALLENGE: return "E_HAT_WRONG_CHALLENGE";
+    case Session::ErrorCode::E_INCORRECT_STATE:     return "E_INCORRECT_STATE";
+    case Session::ErrorCode::E_ENROLL_FAILED:       return "E_ENROLL_FAILED";
+    default: return std::to_string(static_cast<int>(ec));
     }
 }
 
@@ -114,8 +132,7 @@ Session::Session(const int32_t sensorId, const int32_t userId,
     , mStorage(sensorId, userId)
     , mRandom(generateSeed(this))
  {
-    ALOGD("%p:%s: New session: sensorId=%d userId=%d",
-          this, __func__, sensorId, userId);
+    SESSION_DEBUG("New session: sensorId=%d userId=%d", sensorId, userId);
 
     if (::android::base::Socketpair(AF_LOCAL, SOCK_STREAM, 0,
                                     &mCallerFd, &mSensorThreadFd)) {
@@ -127,7 +144,7 @@ Session::Session(const int32_t sensorId, const int32_t userId,
 }
 
 Session::~Session() {
-    ALOGD("%p:%s: Terminating session", this, __func__);
+    SESSION_DEBUG0("Terminating session");
 
     TEMP_FAILURE_RETRY(write(mCallerFd.get(), &kSensorListenerQuitCmd, 1));
     mSensorListener.join();
@@ -142,8 +159,7 @@ ndk::ScopedAStatus Session::generateChallenge() {
         }
 
         if (mChallenges.insert(challenge).second) {
-            ALOGD("%p:%s: onChallengeGenerated(challenge=%" PRId64 ")",
-                  this, __func__, challenge);
+            SESSION_DEBUG("onChallengeGenerated(challenge=%" PRId64 ")", challenge);
             mSessionCb->onChallengeGenerated(challenge);
             return ndk::ScopedAStatus::ok();
         }
@@ -152,8 +168,7 @@ ndk::ScopedAStatus Session::generateChallenge() {
 
 ndk::ScopedAStatus Session::revokeChallenge(const int64_t challenge) {
     mChallenges.erase(challenge);
-    ALOGD("%p:%s: onChallengeRevoked(challenge=%" PRId64 ")",
-          this, __func__, challenge);
+    SESSION_DEBUG("onChallengeRevoked(challenge=%" PRId64 ")", challenge);
     mSessionCb->onChallengeRevoked(challenge);
     return ndk::ScopedAStatus::ok();
 }
@@ -177,19 +192,17 @@ ndk::ScopedAStatus Session::enroll(const keymaster::HardwareAuthToken& hat,
         }
 
         if (ok) {
-            ALOGD("%p:%s: ENROLLING_START hat.userId=%" PRId64,
-                  this, __func__, hat.userId);
+            SESSION_DEBUG("ENROLLING_START hat.userId=%" PRId64, hat.userId);
             *out = SharedRefBase::make<CancellationSignal>([this](){ cancellEnroll(); });
         } else {
-            ALOGE("%p:%s: onError(UNABLE_TO_PROCESS, %d): incorrect state, %s",
-                  this, __func__, int(ErrorCode::E_INCORRECT_STATE),
-                  state2str(previousState));
+            SESSION_ERR("onError(UNABLE_TO_PROCESS, %d): incorrect state, %s",
+                  int(ErrorCode::E_INCORRECT_STATE), state2str(previousState).c_str());
             mSessionCb->onError(Error::UNABLE_TO_PROCESS,
                                 int(ErrorCode::E_INCORRECT_STATE));
         }
     } else {
-        ALOGE("%p:%s: onError(UNABLE_TO_PROCESS, %d): `hat` is invalid",
-              this, __func__, int(err));
+        SESSION_ERR("onError(UNABLE_TO_PROCESS, %d): `hat` is invalid: %s",
+                    int(err), errorCode2str(err).c_str());
         mSessionCb->onError(Error::UNABLE_TO_PROCESS, int(err));
     }
 
@@ -213,12 +226,12 @@ ndk::ScopedAStatus Session::authenticate(const int64_t operationId,
     }
 
     if (ok) {
-        ALOGD("%p:%s: AUTHENTICATING operationId=%" PRId64, this, __func__, operationId);
+        SESSION_DEBUG("AUTHENTICATING operationId=%" PRId64, operationId);
         *out = SharedRefBase::make<CancellationSignal>([this](){ cancellAuthenticate(); });
     } else {
-        ALOGE("%p:%s: onError(UNABLE_TO_PROCESS, %d): incorrect state, %s",
-              this, __func__, int(ErrorCode::E_INCORRECT_STATE),
-              state2str(previousState));
+        SESSION_ERR("onError(UNABLE_TO_PROCESS, %d): incorrect state, %s",
+                    int(ErrorCode::E_INCORRECT_STATE),
+                    state2str(previousState).c_str());
         mSessionCb->onError(Error::UNABLE_TO_PROCESS,
                             int(ErrorCode::E_INCORRECT_STATE));
     }
@@ -242,12 +255,12 @@ ndk::ScopedAStatus Session::detectInteraction(
     }
 
     if (ok) {
-        ALOGD("%p:%s DETECTING_INTERACTION", this, __func__);
+        SESSION_DEBUG0("DETECTING_INTERACTION");
         *out = SharedRefBase::make<CancellationSignal>([this](){ cancellDetectInteraction(); });
     } else {
-        ALOGE("%p:%s: onError(UNABLE_TO_PROCESS, %d): incorrect state, %s",
-              this, __func__, int(ErrorCode::E_INCORRECT_STATE),
-              state2str(previousState));
+        SESSION_ERR("onError(UNABLE_TO_PROCESS, %d): incorrect state, %s",
+                    int(ErrorCode::E_INCORRECT_STATE),
+                    state2str(previousState).c_str());
         mSessionCb->onError(Error::UNABLE_TO_PROCESS,
                             int(ErrorCode::E_INCORRECT_STATE));
     }
@@ -262,8 +275,8 @@ ndk::ScopedAStatus Session::enumerateEnrollments() {
         enrollmentIds = mStorage.enumerateEnrollments();
     }
 
-    ALOGD("%p:%s: onEnrollmentsEnumerated(enrollmentIds=%s)",
-          this, __func__, vec2str(enrollmentIds).c_str());
+    SESSION_DEBUG("onEnrollmentsEnumerated(enrollmentIds=%s)",
+                  vec2str(enrollmentIds).c_str());
     mSessionCb->onEnrollmentsEnumerated(enrollmentIds);
     return ndk::ScopedAStatus::ok();
 }
@@ -274,8 +287,8 @@ ndk::ScopedAStatus Session::removeEnrollments(const std::vector<int32_t>& enroll
         mStorage.removeEnrollments(enrollmentIds);
     }
 
-    ALOGD("%p:%s: onEnrollmentsRemoved(enrollmentIds=%s)",
-          this, __func__, vec2str(enrollmentIds).c_str());
+    SESSION_DEBUG("onEnrollmentsRemoved(enrollmentIds=%s)",
+                  vec2str(enrollmentIds).c_str());
     mSessionCb->onEnrollmentsRemoved(enrollmentIds);
     return ndk::ScopedAStatus::ok();
 }
@@ -287,8 +300,7 @@ ndk::ScopedAStatus Session::getAuthenticatorId() {
         authId = mStorage.getAuthenticatorId();
     }
 
-    ALOGD("%p:%s: onAuthenticatorIdRetrieved(authId=%" PRId64 ")",
-          this, __func__, authId);
+    SESSION_DEBUG("onAuthenticatorIdRetrieved(authId=%" PRId64 ")", authId);
     mSessionCb->onAuthenticatorIdRetrieved(authId);
     return ndk::ScopedAStatus::ok();
 }
@@ -300,8 +312,7 @@ ndk::ScopedAStatus Session::invalidateAuthenticatorId() {
         authId = mStorage.invalidateAuthenticatorId(generateInt64());
     }
 
-    ALOGD("%p:%s: onAuthenticatorIdInvalidated(authId=%" PRId64 ")",
-          this, __func__, authId);
+    SESSION_DEBUG("onAuthenticatorIdInvalidated(authId=%" PRId64 ")", authId);
     mSessionCb->onAuthenticatorIdInvalidated(authId);
     return ndk::ScopedAStatus::ok();
 }
@@ -314,11 +325,11 @@ ndk::ScopedAStatus Session::resetLockout(const keymaster::HardwareAuthToken& hat
             mStorage.resetLockout();
         }
 
-        ALOGD("%p:%s: onLockoutCleared", this, __func__);
+        SESSION_DEBUG0("onLockoutCleared");
         mSessionCb->onLockoutCleared();
     } else {
-        ALOGE("%p:%s: onError(UNABLE_TO_PROCESS, %d): `hat` is invalid",
-              this, __func__, int(err));
+        SESSION_ERR("onError(UNABLE_TO_PROCESS, %d): `hat` is invalid: %s",
+                    int(err), errorCode2str(err).c_str());
         mSessionCb->onError(Error::UNABLE_TO_PROCESS, int(err));
     }
     return ndk::ScopedAStatus::ok();
@@ -326,7 +337,7 @@ ndk::ScopedAStatus Session::resetLockout(const keymaster::HardwareAuthToken& hat
 
 ndk::ScopedAStatus Session::close() {
     mChallenges.clear();
-    ALOGD("%p:%s: onSessionClosed", this, __func__);
+    SESSION_DEBUG0("onSessionClosed");
     mSessionCb->onSessionClosed();
     return ndk::ScopedAStatus::ok();
 }
@@ -355,25 +366,25 @@ void Session::onSensorEventOn(const int32_t enrollmentId) {
     case State::ENROLLING_START:
     case State::ENROLLING_END:
         {
-            ALOGD("%p:%s: onAcquired(GOOD, %d)", this, __func__, 0);
+            SESSION_DEBUG("onAcquired(GOOD, %d)", 0);
             mSessionCb->onAcquired(AcquiredInfo::GOOD, 0);
 
             const int left = int(State::ENROLLING_END) - int(mState);
             if (left > 0) {
-                ALOGD("%p:%s: onEnrollmentProgress(enrollmentId=%d, left=%d)",
-                      this, __func__, enrollmentId, left);
+                SESSION_DEBUG("onEnrollmentProgress(enrollmentId=%d, left=%d)",
+                              enrollmentId, left);
                 mSessionCb->onEnrollmentProgress(enrollmentId, left);
                 mState = State(int(mState) + 1);
             } else if (mStorage.enroll(enrollmentId, mEnrollingSecUserId, generateInt64())) {
-                ALOGD("%p:%s: onEnrollmentProgress(enrollmentId=%d, left=%d)",
-                      this, __func__, enrollmentId, left);
+                SESSION_DEBUG("onEnrollmentProgress(enrollmentId=%d, left=%d)",
+                              enrollmentId, left);
                 mSessionCb->onEnrollmentProgress(enrollmentId, left);
                 mState = State::IDLE;
             } else {
-                ALOGE("%p:%s: onError(UNABLE_TO_PROCESS, %d): enrollmentId=%d, "
-                      "secureIserId=%" PRId64 ,
-                      this, __func__, int(ErrorCode::E_ENROLL_FAILED),
-                      enrollmentId, mEnrollingSecUserId);
+                SESSION_ERR("onError(UNABLE_TO_PROCESS, %d): enrollmentId=%d, "
+                            "secureIserId=%" PRId64 ,
+                            int(ErrorCode::E_ENROLL_FAILED),
+                            enrollmentId, mEnrollingSecUserId);
                 mSessionCb->onError(Error::UNABLE_TO_PROCESS,
                                     int(ErrorCode::E_ENROLL_FAILED));
                 mState = State::IDLE;
@@ -386,17 +397,17 @@ void Session::onSensorEventOn(const int32_t enrollmentId) {
             const auto [res, lockoutDurationMillis, tok] =
                 mStorage.authenticate(enrollmentId);
             if (res != Storage::AuthResult::LOCKED_OUT_PERMANENT) {
-                ALOGD("%p:%s: onAcquired(GOOD, %d)", this, __func__, 0);
+                SESSION_DEBUG("onAcquired(GOOD, %d)", 0);
                 mSessionCb->onAcquired(AcquiredInfo::GOOD, 0);
             }
 
             switch (res) {
             case Storage::AuthResult::OK: {
-                    ALOGD("%p:%s: onAuthenticationSucceeded(enrollmentId=%d, "
-                          "hat={ .challenge=%" PRId64 ", .userId=%" PRId64 ", "
-                          ".authenticatorId=%" PRId64 " })",
-                          this, __func__, enrollmentId, mAuthChallenge,
-                          tok.userId, tok.authenticatorId);
+                    SESSION_DEBUG("onAuthenticationSucceeded(enrollmentId=%d, "
+                                  "hat={ .challenge=%" PRId64 ", .userId=%" PRId64 ", "
+                                  ".authenticatorId=%" PRId64 " })",
+                                  enrollmentId, mAuthChallenge,
+                                  tok.userId, tok.authenticatorId);
 
                     keymaster::HardwareAuthToken hat;
                     hat.challenge = mAuthChallenge;
@@ -410,21 +421,19 @@ void Session::onSensorEventOn(const int32_t enrollmentId) {
                 break;
 
             case Storage::AuthResult::FAILED:
-                ALOGE("%p:%s: onAuthenticationFailed: enrollmentId=%d",
-                      this, __func__, enrollmentId);
+                SESSION_ERR("onAuthenticationFailed: enrollmentId=%d", enrollmentId);
                 mSessionCb->onAuthenticationFailed();
                 break;
 
             case Storage::AuthResult::LOCKED_OUT_TIMED:
-                ALOGE("%p:%s: onLockoutTimed(durationMillis=%d): enrollmentId=%d",
-                      this, __func__, lockoutDurationMillis, enrollmentId);
+                SESSION_ERR("onLockoutTimed(durationMillis=%d): enrollmentId=%d",
+                            lockoutDurationMillis, enrollmentId);
                 mSessionCb->onLockoutTimed(lockoutDurationMillis);
                 mState = State::IDLE;
                 break;
 
             case Storage::AuthResult::LOCKED_OUT_PERMANENT:
-                ALOGE("%p:%s: onLockoutPermanent: enrollmentId=%d",
-                      this, __func__, enrollmentId);
+                SESSION_ERR("onLockoutPermanent: enrollmentId=%d", enrollmentId);
                 mSessionCb->onLockoutPermanent();
                 mState = State::IDLE;
                 break;
@@ -461,7 +470,7 @@ void Session::cancellEnroll() {
         }
     }
 
-    ALOGD("%p:%s: onError(CANCELED, %d)", this, __func__, 0);
+    SESSION_DEBUG("onError(CANCELED, %d)", 0);
     mSessionCb->onError(Error::CANCELED, 0);
 }
 
@@ -473,7 +482,7 @@ void Session::cancellAuthenticate() {
         }
     }
 
-    ALOGD("%p:%s: onError(CANCELED, %d)", this, __func__, 0);
+    SESSION_DEBUG("onError(CANCELED, %d)", 0);
     mSessionCb->onError(Error::CANCELED, 0);
 }
 
@@ -485,7 +494,7 @@ void Session::cancellDetectInteraction() {
         }
     }
 
-    ALOGD("%p:%s: onError(CANCELED, %d)", this, __func__, 0);
+    SESSION_DEBUG("onError(CANCELED, %d)", 0);
     mSessionCb->onError(Error::CANCELED, 0);
 }
 
@@ -515,7 +524,7 @@ bool Session::sensorListenerFuncImpl() {
             }
 
             if (lockoutCleared) {
-                ALOGD("%p:%s: onLockoutCleared", this, __func__);
+                SESSION_DEBUG0("onLockoutCleared");
                 mSessionCb->onLockoutCleared();
             }
             continue;
@@ -525,8 +534,7 @@ bool Session::sensorListenerFuncImpl() {
         const int ev_events = event.events;
         if (fd == sensorFd.get()) {
             if (ev_events & (EPOLLERR | EPOLLHUP)) {
-                ALOGE("%p:%s: epoll_wait: devFd has an error, ev_events=%x",
-                      this, __func__, ev_events);
+                SESSION_ERR("epoll_wait: devFd has an error, ev_events=%x", ev_events);
                 return true;
             } else if (ev_events & EPOLLIN) {
                 char buf[64];
@@ -538,19 +546,16 @@ bool Session::sensorListenerFuncImpl() {
                         if (fid > 0) {
                             onSensorEventOn(fid);
                         } else {
-                            ALOGE("%p:%s: incorrect fingerprint: %d",
-                                  this, __func__, fid);
+                            SESSION_ERR("incorrect fingerprint: %d", fid);
                         }
                     } else if (!strcmp(buf, "off")) {
                         onSensorEventOff();
                     } else {
-                        ALOGE("%p:%s: unexpected hw message: '%s'",
-                              this, __func__, buf);
+                        SESSION_ERR("unexpected hw message: '%s'", buf);
                         return true;
                     }
                 } else {
-                    ALOGE("%p:%s: hw read error, n=%d, errno=%d",
-                          this, __func__, __LINE__, n, errno);
+                    SESSION_ERR("hw read error, n=%d, errno=%d", n, errno);
                     return true;
                 }
             }
@@ -577,8 +582,7 @@ bool Session::sensorListenerFuncImpl() {
                 }
             }
         } else {
-            ALOGE("%p:%s: epoll_wait() returned unexpected fd",
-                  this, __func__);
+            SESSION_ERR("%s", "epoll_wait() returned unexpected fd");
         }
     }
 }
