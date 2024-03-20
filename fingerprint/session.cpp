@@ -121,7 +121,7 @@ Session::Session(const int32_t sensorId, const int32_t userId,
         mSensorListener = std::thread(&Session::sensorListenerFunc, this);
     } else {
         mSensorListener = std::thread([](){});
-        LOG_ALWAYS_FATAL("%p:%s: Socketpair failed", this, __func__);
+        LOG_ALWAYS_FATAL("%p:%s:%d: Socketpair failed", this, __func__, __LINE__);
     }
 }
 
@@ -428,7 +428,8 @@ void Session::onSensorEventOn(const int32_t enrollmentId) {
                 break;
 
             default:
-                LOG_ALWAYS_FATAL("Unexpected result from `mStorage.authenticate`");
+                LOG_ALWAYS_FATAL("%p:%s:%d: Unexpected result from `mStorage.authenticate`",
+                                 this, __func__, __LINE__);
                 break;
             }
         }
@@ -443,7 +444,7 @@ void Session::onSensorEventOn(const int32_t enrollmentId) {
         break;
 
     default:
-        LOG_ALWAYS_FATAL("Unexpected session state");
+        LOG_ALWAYS_FATAL("%p:%s:%d: Unexpected session state", this, __func__, __LINE__);
         break;
     }
 }
@@ -488,8 +489,9 @@ void Session::cancellDetectInteraction() {
 
 bool Session::sensorListenerFuncImpl() {
     unique_fd sensorFd(qemud_channel_open(kSensorServiceName));
-    LOG_ALWAYS_FATAL_IF(!sensorFd.ok(), "Could not open the sensor service: '%s'",
-                        kSensorServiceName);
+    LOG_ALWAYS_FATAL_IF(!sensorFd.ok(),
+                        "%p:%s:%d: Could not open the sensor service: '%s'",
+                        this, __func__, __LINE__, kSensorServiceName);
 
     const unique_fd epollFd(epoll_create1(EPOLL_CLOEXEC));
     epollCtlAdd(epollFd.get(), sensorFd.get());
@@ -552,8 +554,8 @@ bool Session::sensorListenerFuncImpl() {
             }
         } else if (fd == mSensorThreadFd.get()) {
             if (ev_events & (EPOLLERR | EPOLLHUP)) {
-                LOG_ALWAYS_FATAL("%p:%s: epoll_wait: threadsFd has an error, ev_events=%x",
-                                 this, __func__, ev_events);
+                LOG_ALWAYS_FATAL("%p:%s:%d: epoll_wait: threadsFd has an error, ev_events=%x",
+                                 this, __func__, __LINE__, ev_events);
             } else if (ev_events & EPOLLIN) {
                 char cmd;
                 int n = TEMP_FAILURE_RETRY(read(fd, &cmd, sizeof(cmd)));
@@ -563,13 +565,13 @@ bool Session::sensorListenerFuncImpl() {
                         return false;  // quit
 
                     default:
-                        LOG_ALWAYS_FATAL("%p:%s: unexpected command, cmd=%c",
-                                         this, __func__, cmd);
+                        LOG_ALWAYS_FATAL("%p:%s:%d: unexpected command, cmd=%c",
+                                         this, __func__, __LINE__, cmd);
                         break;
                     }
                 } else {
-                    LOG_ALWAYS_FATAL("%p:%s: error readind from mThreadsFd, errno=%d",
-                                     this, __func__, errno);
+                    LOG_ALWAYS_FATAL("%p:%s:%d: error readind from mThreadsFd, errno=%d",
+                                     this, __func__, __LINE__, errno);
                 }
             }
         } else {
