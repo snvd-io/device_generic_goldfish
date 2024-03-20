@@ -347,7 +347,7 @@ int64_t Session::generateInt64() {
     return distrib(mRandom);
 }
 
-void Session::onSenserEventOn(const int32_t enrollmentId) {
+void Session::onSensorEventOn(const int32_t enrollmentId) {
     std::lock_guard<std::mutex> lock(mMutex);
     switch (mState) {
     case State::ENROLLING_START:
@@ -448,7 +448,7 @@ void Session::onSenserEventOn(const int32_t enrollmentId) {
     }
 }
 
-void Session::onSenserEventOff() {}
+void Session::onSensorEventOff() {}
 
 void Session::cancellEnroll() {
     {
@@ -532,13 +532,13 @@ bool Session::sensorListenerFuncImpl() {
                     int32_t fid;
                     if (sscanf(buf, "on:%d", &fid) == 1) {
                         if (fid > 0) {
-                            onSenserEventOn(fid);
+                            onSensorEventOn(fid);
                         } else {
                             ALOGE("%p:%s: incorrect fingerprint: %d",
                                   this, __func__, fid);
                         }
                     } else if (!strcmp(buf, "off")) {
-                        onSenserEventOff();
+                        onSensorEventOff();
                     } else {
                         ALOGE("%p:%s: unexpected hw message: '%s'",
                               this, __func__, buf);
