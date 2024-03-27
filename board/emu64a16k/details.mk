@@ -25,4 +25,4 @@ PRODUCT_COPY_FILES += \
     $(EMULATOR_KERNEL_FILE):kernel-ranchu \
     device/generic/goldfish/data/etc/advancedFeatures.ini:advancedFeatures.ini \
 
-PRODUCT_NO_BIONIC_PAGE_SIZE_MACRO := true
+$(call inherit-product, device/generic/goldfish/board/16k.mk)
