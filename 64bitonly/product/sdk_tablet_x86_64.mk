@@ -69,10 +69,6 @@ PRODUCT_PACKAGES += \
     preinstalled-packages-platform-aosp-product.xml \
     WallpaperPicker \
 
-
-# Window Extensions
-$(call inherit-product, $(SRC_TARGET_DIR)/product/window_extensions.mk)
-
 # Other packages for virtual device testing.
 PRODUCT_PACKAGES += \
     LargeScreenSettingsProviderOverlay \
