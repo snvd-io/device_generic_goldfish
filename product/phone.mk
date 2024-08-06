@@ -23,4 +23,6 @@ PRODUCT_CHARACTERISTICS := emulator
 
 $(call inherit-product, device/generic/goldfish/product/generic.mk)
 
-PRODUCT_PACKAGES += GoldfishSkinConfig
+PRODUCT_PACKAGES += GoldfishSkinConfig \
+                    GoldfishExtraFeature
+
