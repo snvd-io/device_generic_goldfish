@@ -29,6 +29,7 @@ cc_defaults {
     vendor: true,
     static_libs: [
         "libGoldfishAddressSpace",
+        "libmesa_util_gfxstream",
     ],
     shared_libs: [
         "android.hardware.graphics.allocator-V2-ndk",
