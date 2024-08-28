@@ -2,7 +2,7 @@
 # and other files for distribution
 
 ifeq ($(filter $(TARGET_PRODUCT), qemu_trusty_arm64),)
-ifeq ($(filter $(MAKECMDGOALS), sdk win_sdk sdk_repo),)
+ifneq ($(filter emu_img_zip goog_emu_imgs emu_kernel_zip, $(MAKECMDGOALS)),)
 emulator_img_source_prop := $(TARGET_OUT_INTERMEDIATES)/source.properties
 target_notice_file_txt := $(TARGET_OUT_INTERMEDIATES)/NOTICE.txt
 $(emulator_img_source_prop): $(PRODUCT_SDK_ADDON_SYS_IMG_SOURCE_PROP)
@@ -123,5 +123,5 @@ $(INTERNAL_EMULATOR_KERNEL_TARGET): $(INSTALLED_QEMU_RAMDISKIMAGE) $(EMULATOR_KE
 emu_kernel_zip: $(INTERNAL_EMULATOR_KERNEL_TARGET)
 
 $(call dist-for-goals-with-filenametag, emu_kernel_zip, $(INTERNAL_EMULATOR_KERNEL_TARGET))
-endif
+endif  # filter for the [emu_img_zip, goog_emu_imgs, emu_kernel_zip] goals
 endif
