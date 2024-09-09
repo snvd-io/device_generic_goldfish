@@ -110,6 +110,46 @@ emu_img_zip: $(INTERNAL_EMULATOR_PACKAGE_TARGET)
 .PHONY: goog_emu_imgs
 goog_emu_imgs: emu_img_zip
 
+# The following rules generate emu_extra_imgs package. It is similar to
+# emu_img_zip, but it does not contain system-qemu.img and vendor-qemu.img. It
+# conatins the necessary data to build the qemu images. The package can be
+# mixed with generic system, kernel, and system_dlkm images.
+EMU_EXTRA_FILES := \
+        $(INTERNAL_EMULATOR_PACKAGE_FILES) \
+        $(INSTALLED_QEMU_RAMDISKIMAGE) \
+        $(PRODUCT_OUT)/kernel_cmdline.txt \
+        $(PRODUCT_OUT)/system-qemu-config.txt \
+        $(PRODUCT_OUT)/misc_info.txt \
+        $(PRODUCT_OUT)/vbmeta.img \
+        $(foreach p,$(BOARD_SUPER_PARTITION_PARTITION_LIST),$(PRODUCT_OUT)/$(p).img)
+
+EMU_EXTRA_TARGET_DEPENDENCIES := \
+        $(EMU_EXTRA_FILES) \
+        $(EMULATOR_KERNEL_FILE) \
+        $(ADVANCED_FEATURES_FILES) \
+        $(PRODUCT_OUT_DATA_FILES)
+
+EMU_EXTRA_TARGET := $(PRODUCT_OUT)/emu-extra-linux-system-images.zip
+
+$(EMU_EXTRA_TARGET): PRIVATE_PACKAGE_SRC := \
+        $(call intermediates-dir-for, PACKAGING, emu_extra_target)
+
+$(EMU_EXTRA_TARGET): $(EMU_EXTRA_TARGET_DEPENDENCIES) $(SOONG_ZIP)
+	@echo "Package: $@"
+	$(hide) rm -rf $@ $(PRIVATE_PACKAGE_SRC)
+	$(hide) mkdir -p $(PRIVATE_PACKAGE_SRC)/$(TARGET_ARCH)/system
+	$(hide) $(ACP) $(PRODUCT_OUT)/system/build.prop $(PRIVATE_PACKAGE_SRC)/$(TARGET_ARCH)/system
+	$(hide) $(foreach f,$(EMU_EXTRA_FILES), $(ACP) $(f) $(PRIVATE_PACKAGE_SRC)/$(TARGET_ARCH)/$(notdir $(f)) &&) true
+	$(hide) $(foreach f,$(ADVANCED_FEATURES_FILES), $(ACP) $(f) $(PRIVATE_PACKAGE_SRC)/$(TARGET_ARCH)/advancedFeatures.ini &&) true
+	$(hide) $(ACP) $(EMULATOR_KERNEL_FILE) $(PRIVATE_PACKAGE_SRC)/$(TARGET_ARCH)/${EMULATOR_KERNEL_DIST_NAME}
+	$(hide) $(ACP) -r $(PRODUCT_OUT)/data $(PRIVATE_PACKAGE_SRC)/$(TARGET_ARCH)
+	$(SOONG_ZIP) -o $@ -C $(PRIVATE_PACKAGE_SRC) -D $(PRIVATE_PACKAGE_SRC)/$(TARGET_ARCH)
+
+.PHONY: emu_extra_imgs
+emu_extra_imgs: $(EMU_EXTRA_TARGET)
+
+$(call dist-for-goals-with-filenametag, emu_extra_imgs, $(EMU_EXTRA_TARGET))
+
 INTERNAL_EMULATOR_KERNEL_TARGET := $(PRODUCT_OUT)/emu-gki-$(TARGET_KERNEL_USE).zip
 INTERNAL_GKI_SOURCE := $(INTERNAL_EMULATOR_PACKAGE_SOURCE)/GKI-$(TARGET_KERNEL_USE)
 $(INTERNAL_EMULATOR_KERNEL_TARGET): $(INSTALLED_QEMU_RAMDISKIMAGE) $(EMULATOR_KERNEL_FILE)
