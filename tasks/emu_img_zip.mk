@@ -2,8 +2,9 @@
 # and other files for distribution
 
 ifneq ($(filter sdk_% gcar_%, $(TARGET_PRODUCT)),)
-emulator_img_source_prop := $(TARGET_OUT_INTERMEDIATES)/source.properties
 target_notice_file_txt := $(TARGET_OUT_INTERMEDIATES)/NOTICE.txt
+
+emulator_img_source_prop := $(TARGET_OUT_INTERMEDIATES)/source.properties
 $(emulator_img_source_prop): $(PRODUCT_SDK_ADDON_SYS_IMG_SOURCE_PROP)
 	$(process_prop_template)
 
@@ -26,6 +27,7 @@ endif
 endif
 
 INTERNAL_EMULATOR_PACKAGE_SOURCE := $(PRODUCT_OUT)/emulator
+INTERNAL_EMULATOR_PACKAGE_TARGET := $(PRODUCT_OUT)/sdk-repo-linux-system-images.zip
 
 INSTALLED_QEMU_SYSTEMIMAGE := $(PRODUCT_OUT)/system-qemu.img
 FINAL_INSTALLED_QEMU_SYSTEMIMAGE := $(INTERNAL_EMULATOR_PACKAGE_SOURCE)/$(TARGET_CPU_ABI)/system.img
@@ -45,11 +47,6 @@ INTERNAL_EMULATOR_PACKAGE_FILES += device/generic/goldfish/data/etc/encryptionke
 ifneq ($(filter $(PRODUCT_DEVICE), emulator_car64_arm64 emulator_car64_x86_64),)
 INTERNAL_EMULATOR_PACKAGE_FILES += hardware/interfaces/automotive/vehicle/aidl/emu_metadata/android.hardware.automotive.vehicle-types-meta.json
 endif
-
-name := sdk-repo-linux-system-images
-
-
-INTERNAL_EMULATOR_PACKAGE_TARGET := $(PRODUCT_OUT)/$(name).zip
 
 ifeq ($(TARGET_ARCH), arm)
 # This is wrong and should be retired.
