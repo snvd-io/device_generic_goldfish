@@ -8,20 +8,20 @@ $(emulator_img_source_prop): $(PRODUCT_SDK_ADDON_SYS_IMG_SOURCE_PROP)
 	$(process_prop_template)
 
 INTERNAL_EMULATOR_PACKAGE_FILES := \
-        $(target_notice_file_txt) \
-        $(emulator_img_source_prop) \
-        $(PRODUCT_OUT)/system/build.prop \
+	$(target_notice_file_txt) \
+	$(emulator_img_source_prop) \
+	$(PRODUCT_OUT)/system/build.prop \
 
 ifneq ($(filter $(TARGET_PRODUCT), sdk_goog3_x86 sdk_goog3_x86_64 sdk_goog3_x86_arm),)
-    INTERNAL_EMULATOR_PACKAGE_FILES += \
-        $(HOST_OUT_EXECUTABLES)/dex2oat \
-        $(HOST_OUT_EXECUTABLES)/dex2oatd
+INTERNAL_EMULATOR_PACKAGE_FILES += \
+	$(HOST_OUT_EXECUTABLES)/dex2oat \
+	$(HOST_OUT_EXECUTABLES)/dex2oatd
 endif
 
 ifeq ($(BUILD_QEMU_IMAGES),true)
 ifeq ($(BOARD_AVB_ENABLE),true)
 INTERNAL_EMULATOR_PACKAGE_FILES += \
-        $(PRODUCT_OUT)/VerifiedBootParams.textproto
+	$(PRODUCT_OUT)/VerifiedBootParams.textproto
 endif
 endif
 
@@ -99,25 +99,25 @@ goog_emu_imgs: emu_img_zip
 # conatins the necessary data to build the qemu images. The package can be
 # mixed with generic system, kernel, and system_dlkm images.
 EMU_EXTRA_FILES := \
-        $(INTERNAL_EMULATOR_PACKAGE_FILES) \
-        $(INSTALLED_QEMU_RAMDISKIMAGE) \
-        $(PRODUCT_OUT)/advancedFeatures.ini \
-        $(PRODUCT_OUT)/kernel_cmdline.txt \
-        $(PRODUCT_OUT)/system-qemu-config.txt \
-        $(PRODUCT_OUT)/misc_info.txt \
-        $(PRODUCT_OUT)/vbmeta.img \
-        $(foreach p,$(BOARD_SUPER_PARTITION_PARTITION_LIST),$(PRODUCT_OUT)/$(p).img)
+	$(INTERNAL_EMULATOR_PACKAGE_FILES) \
+	$(INSTALLED_QEMU_RAMDISKIMAGE) \
+	$(PRODUCT_OUT)/advancedFeatures.ini \
+	$(PRODUCT_OUT)/kernel_cmdline.txt \
+	$(PRODUCT_OUT)/system-qemu-config.txt \
+	$(PRODUCT_OUT)/misc_info.txt \
+	$(PRODUCT_OUT)/vbmeta.img \
+	$(foreach p,$(BOARD_SUPER_PARTITION_PARTITION_LIST),$(PRODUCT_OUT)/$(p).img)
 
 EMU_EXTRA_TARGET_DEPENDENCIES := \
-        $(EMU_EXTRA_FILES) \
-        $(EMULATOR_KERNEL_FILE) \
-        $(ADVANCED_FEATURES_FILES) \
-        $(PRODUCT_OUT_DATA_FILES)
+	$(EMU_EXTRA_FILES) \
+	$(EMULATOR_KERNEL_FILE) \
+	$(ADVANCED_FEATURES_FILES) \
+	$(PRODUCT_OUT_DATA_FILES)
 
 EMU_EXTRA_TARGET := $(PRODUCT_OUT)/emu-extra-linux-system-images.zip
 
 $(EMU_EXTRA_TARGET): PRIVATE_PACKAGE_SRC := \
-        $(call intermediates-dir-for, PACKAGING, emu_extra_target)
+	$(call intermediates-dir-for, PACKAGING, emu_extra_target)
 
 $(EMU_EXTRA_TARGET): $(EMU_EXTRA_TARGET_DEPENDENCIES) $(SOONG_ZIP)
 	@echo "Package: $@"
