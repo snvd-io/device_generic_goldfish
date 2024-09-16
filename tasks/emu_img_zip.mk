@@ -31,6 +31,11 @@ INTERNAL_EMULATOR_PACKAGE_FILES += \
 	$(HOST_OUT_EXECUTABLES)/dex2oatd
 endif
 
+ifneq ($(filter $(PRODUCT_DEVICE), emulator_car64_arm64 emulator_car64_x86_64),)
+INTERNAL_EMULATOR_PACKAGE_FILES += \
+	hardware/interfaces/automotive/vehicle/aidl/emu_metadata/android.hardware.automotive.vehicle-types-meta.json
+endif
+
 INTERNAL_EMULATOR_PACKAGE_SOURCE := $(PRODUCT_OUT)/emulator
 INTERNAL_EMULATOR_PACKAGE_TARGET := $(PRODUCT_OUT)/sdk-repo-linux-system-images.zip
 
@@ -45,11 +50,6 @@ $(eval $(call copy-one-file,$(INSTALLED_QEMU_RAMDISKIMAGE),$(FINAL_INSTALLED_QEM
 INSTALLED_QEMU_VENDORIMAGE := $(PRODUCT_OUT)/vendor-qemu.img
 FINAL_INSTALLED_QEMU_VENDORIMAGE := $(INTERNAL_EMULATOR_PACKAGE_SOURCE)/$(TARGET_CPU_ABI)/vendor.img
 $(eval $(call copy-one-file,$(INSTALLED_QEMU_VENDORIMAGE),$(FINAL_INSTALLED_QEMU_VENDORIMAGE)))
-
-
-ifneq ($(filter $(PRODUCT_DEVICE), emulator_car64_arm64 emulator_car64_x86_64),)
-INTERNAL_EMULATOR_PACKAGE_FILES += hardware/interfaces/automotive/vehicle/aidl/emu_metadata/android.hardware.automotive.vehicle-types-meta.json
-endif
 
 PRODUCT_OUT_DATA_FILES := $(PRODUCT_OUT)/userdata.img # also builds $(PRODUCT_OUT)/data
 
